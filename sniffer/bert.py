@@ -40,3 +40,29 @@ class Dataset(torch.utils.data.Dataset):
         batch_y = self.get_batch_labels(idx)
 
         return batch_texts, batch_y
+
+class BertClassifier(nn.Module):
+    """
+    BERT encoder model with custom feed forward architecture.
+    """
+    def __init__(self, dropout=0.5):
+        super(BertClassifier, self).__init__()
+        self.bert = BertModel.from_pretrained('bert-base-cased')
+        self.dropout = nn.Dropout(dropout)
+        self.dense1 = nn.Linear(768, 512)
+        self.dense2 = nn.Linear(512, 512)
+        self.output = nn.Linear(512, 6)
+        self.relu2 = nn.ReLU()
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Softmax(dim=-1)
+
+    def forward(self, input_id, mask):
+        _, pooled_output = self.bert(input_ids=input_id, attention_mask=mask, return_dict=False)
+        x = self.dense1(pooled_output)
+        x = self.relu(x)
+        x = self.dropout(x)
+        x = self.dense2(x)
+        x = self.relu2(x)
+        x = self.output(x)
+        final_layer = self.sigmoid(x)
+        return final_layer
